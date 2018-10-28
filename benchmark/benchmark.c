@@ -189,6 +189,7 @@ int main(int argc, char *argv[])
 
     _test_mem_container(devfd, 0, max_size_of_objects, &current_time, max_size_of_objects_with_buffer);
     _test_mem_container(devfd, 0, max_size_of_objects, &current_time, max_size_of_objects_with_buffer);
+    _test_mem_container(devfd, 1, max_size_of_objects, &current_time, max_size_of_objects_with_buffer);
 
     // try delete something
     i = 0; // rand() % number_of_objects;
