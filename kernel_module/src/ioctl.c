@@ -362,19 +362,15 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // update flags
     vma->vm_private_data = filp->private_data;
 
-    printk("Mapping for offset : %llu\n", offset);
-
     // try to find a memory object with same offset    
     existing_object = (ObjectNode*)_get_memory_object(offset);
 
     // check if memory object already exists and is allocated 
     if (existing_object != NULL) {
         kmalloc_area = existing_object->kmalloc_area;
-        printk(KERN_INFO "Taking existing memory area : %lu\n", kmalloc_area);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
-        printk(KERN_INFO "Created new memory area : %lu\n", kmalloc_area);
         _add_new_memory_object(offset, kmalloc_area);
     }
     
