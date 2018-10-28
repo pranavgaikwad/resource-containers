@@ -373,6 +373,7 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
+        // update list of memory object
         _add_new_memory_object(offset, kmalloc_area);
     }
     
