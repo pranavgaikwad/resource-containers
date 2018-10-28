@@ -368,11 +368,11 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // check if memory object already exists and is allocated 
     if (existing_object != NULL) {
         kmalloc_area = existing_object->kmalloc_area;
-        printk("Taking existing memory area : %llu\n", kmalloc_area);
+        printk(KERN_INFO "Taking existing memory area : %lu\n", kmalloc_area);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
-        printk("Created new memory area : %llu\n", kmalloc_area);
+        printk(KERN_INFO "Created new memory area : %lu\n", kmalloc_area);
         _add_new_memory_object(offset, kmalloc_area);
     }
     
