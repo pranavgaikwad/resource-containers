@@ -55,7 +55,7 @@ typedef struct task_node {
 // defines a memory object
 typedef struct mem_object_node {
     __u64 offset;
-    unsigned long kmalloc_area;  // stores allocated memory area
+    unsigned long kmalloc_area;  // stores pointer to allocated memory area
     struct list_head mem_objects_list;
 } ObjectNode;
 
