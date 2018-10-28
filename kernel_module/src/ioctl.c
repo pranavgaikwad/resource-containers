@@ -60,6 +60,7 @@ typedef struct mem_object_node {
 } ObjectNode;
 
 // defines a container
+// contains list of tasks and list of allocated memory objects
 typedef struct container_node {
     __u64 id;
     int num_tasks;
@@ -312,7 +313,7 @@ void _remove_memory_object(__u64 offset) {
             if (temp_object->offset == offset) {
                 temp_container->num_objects = temp_container->num_objects - 1;
                 list_del(t_pos);
-                kfree((void*)temp_object->kmalloc_area);
+                kfree((void*)temp_object->kmalloc_area);    // free the memory area which was allocated
                 kfree(temp_object);
             }
         }
