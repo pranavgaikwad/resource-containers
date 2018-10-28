@@ -55,8 +55,8 @@ void _test_mem_container(
         int max_size_of_objects, 
         struct timeval* current_time,
         int max_size_of_objects_with_buffer) {
+    int i, j, a;
     char *mapped_data, data;
-    int i, j;
 
     mcontainer_lock(devfd, i);
     mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
