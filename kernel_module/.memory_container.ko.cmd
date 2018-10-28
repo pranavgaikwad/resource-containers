@@ -1,0 +1,1 @@
+cmd_/home/pranav/Desktop/Project2/kernel_module/memory_container.ko := ld -r -m elf_x86_64 -T ./scripts/module-common.lds --build-id  -o /home/pranav/Desktop/Project2/kernel_module/memory_container.ko /home/pranav/Desktop/Project2/kernel_module/memory_container.o /home/pranav/Desktop/Project2/kernel_module/memory_container.mod.o
