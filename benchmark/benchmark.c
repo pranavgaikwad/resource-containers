@@ -73,6 +73,8 @@ void _test_mem_container(
     // generate a random number to write into the object.
     a = rand() + 1;
 
+    fprintf(stderr, "Data at memory object is : %s", mapped_data);
+
     // starts to write the data to that address.
     gettimeofday(current_time, NULL);
     for (j = 0; j < max_size_of_objects_with_buffer - 10; j = strlen(data))
@@ -82,6 +84,8 @@ void _test_mem_container(
 
     strncpy(mapped_data, data, max_size_of_objects-1);
     mapped_data[max_size_of_objects-1] = '\0';
+
+    fprintf(stderr, "Data at memory object is : %s", mapped_data);
         
     mcontainer_unlock(devfd, i);
     memset(data, 0, max_size_of_objects_with_buffer);
