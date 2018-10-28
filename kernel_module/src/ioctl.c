@@ -362,6 +362,8 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // update flags
     vma->vm_private_data = filp->private_data;
 
+    printk("Mapping for offset : %llu\n", offset);
+
     // try to find a memory object with same offset    
     existing_object = (ObjectNode*)_get_memory_object(offset);
 
