@@ -58,8 +58,8 @@ void _test_mem_container(
     int i, j, a;
     char *mapped_data, *data;
 
-    mcontainer_lock(devfd, i);
-    mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
+    mcontainer_lock(devfd, object_offset);
+    mapped_data = (char *)mcontainer_alloc(devfd, object_offset, max_size_of_objects);
     
     data = (char *) malloc(max_size_of_objects_with_buffer * sizeof(char));
 
@@ -87,7 +87,7 @@ void _test_mem_container(
 
     fprintf(stderr, "Data at memory object is : %s\n", mapped_data);
         
-    mcontainer_unlock(devfd, i);
+    mcontainer_unlock(devfd, object_offset);
     memset(data, 0, max_size_of_objects_with_buffer);
 }
 
