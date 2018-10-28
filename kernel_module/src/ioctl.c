@@ -368,6 +368,7 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
 
     // check if memory object already exists and is allocated 
     if (existing_object != NULL) {
+        // use existing memory area, if object with same offset is found
         kmalloc_area = existing_object->kmalloc_area;
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
