@@ -272,7 +272,6 @@ void* _get_memory_object(__u64 offset) {
             }
         }
     }
-
     return NULL;
 }
 
@@ -313,7 +312,7 @@ void _remove_memory_object(__u64 offset) {
             if (temp_object->offset == offset) {
                 temp_container->num_objects = temp_container->num_objects - 1;
                 list_del(t_pos);
-                kfree(temp_object->kmalloc_area);
+                kfree((void*)temp_object->kmalloc_area);
                 kfree(temp_object);
             }
         }
