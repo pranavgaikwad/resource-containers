@@ -208,7 +208,6 @@ void _add_new_task(__u64 cid, struct task_struct *task_ptr) {
         new_task_node->task_pointer = task_ptr;
         list_add_tail(&(new_task_node->task_list), &((new_container->t_list).task_list));
         new_container->num_tasks = new_container->num_tasks + 1;    
-        //printk(KERN_INFO "Added %llu in the container %llu\n", task_ptr->pid, cid);
     }
 }
 
@@ -293,7 +292,6 @@ void _add_new_memory_object(__u64 offset, unsigned long kmalloc_area) {
         new_object_node->kmalloc_area = kmalloc_area;
         list_add_tail(&(new_object_node->mem_objects_list), &((temp_container->mem_objects).mem_objects_list));
         temp_container->num_objects = temp_container->num_objects + 1;    
-        //printk(KERN_INFO "Created object %llu in the container %llu\n", offset, temp_container->id);
     }
 }
 
@@ -313,7 +311,6 @@ void _remove_memory_object(__u64 offset) {
             list_for_each_safe(t_pos, t_q, &(temp_container->mem_objects).mem_objects_list) {
             ObjectNode *temp_object = list_entry(t_pos, ObjectNode, mem_objects_list);
             if (temp_object->offset == offset) {
-                //printk(KERN_ALERT "Deleting mem object %d from contaier %llu\n", offset, temp_container->id);
                 temp_container->num_objects = temp_container->num_objects - 1;
                 list_del(t_pos);
                 kfree(temp_object->kmalloc_area);
@@ -336,7 +333,6 @@ void _deregister_task_from_container(pid_t tid) {
         list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
             TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
             if (temp_task->id == tid) {
-                //printk(KERN_ALERT "Deleting process %d from contaier %llu\n", tid, temp_container->id);
                 temp_container->num_tasks = temp_container->num_tasks - 1;
                 list_del(t_pos);
                 kfree(temp_task);
@@ -372,36 +368,25 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // check if existing memory object already exists
     if (existing_object != NULL) {
         kmalloc_area = existing_object->kmalloc_area;
-        //printk(KERN_INFO "Using existing kmalloc_area...%p\n", kmalloc_area);
     } else {
-        // when does not exist, create new memory area
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
-        //printk(KERN_INFO "Created new kmalloc_area...%p\n", kmalloc_area);
         _add_new_memory_object(offset, kmalloc_area);
     }
     
+    // get pfn for allocated area
     pfn = virt_to_phys((void*)kmalloc_area) >> PAGE_SHIFT;
-    //printk(KERN_INFO "Called mmap : pfn is...%lu. Page Offset is : %lu Protection is : %lu\n", pfn, vma->vm_pgoff, vma->vm_page_prot);
+    // map it
     ret = remap_pfn_range(vma, vma->vm_start, pfn, total_memory, vma->vm_page_prot);
-    //printk(KERN_INFO "Completed pfn remapping %lu", ret);
 
-    if (ret)
-        return -EAGAIN;
-
-    if (ret < 0) {
-        //printk(KERN_ALERT "Failed mapping area...");
-        return -EIO;
-    }
+    if (ret) return -EAGAIN;
+    if (ret < 0) return -EIO;
     return 0;
 }
 
 int memory_container_lock(struct memory_container_cmd __user *user_cmd)
 {
     ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
-
-    //printk(KERN_INFO "Locking mutex %lu\n", container->id);
-
     if (container != NULL) {
         mutex_lock(&container->mem_lock);
     }
@@ -411,9 +396,6 @@ int memory_container_lock(struct memory_container_cmd __user *user_cmd)
 int memory_container_unlock(struct memory_container_cmd __user *user_cmd)
 {
     ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
-
-    //printk(KERN_INFO "Unlocking mutex %lu\n", container->id);
-
     if (container != NULL) {
         mutex_unlock(&container->mem_lock);
     }

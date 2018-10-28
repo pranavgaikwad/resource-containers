@@ -85,8 +85,6 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
-    fprintf(stderr, "Attached module\n");
-
     // parent process forks children
     for (i = 0; i < (number_of_processes - 1); i++)
     {
@@ -101,8 +99,6 @@ int main(int argc, char *argv[])
         }
     }
 
-    fprintf(stderr, "Creating data\n");
-
     data = (char *) malloc(max_size_of_objects_with_buffer * sizeof(char));
 
     // create the log file
@@ -110,21 +106,16 @@ int main(int argc, char *argv[])
     sprintf(filename, "mcontainer.%d.log", (int)getpid());
     fp = fopen(filename, "w");
 
-    fprintf(stderr, "Opened log file\n");
-
     // create/link this process to a container.
     cid = getpid() % number_of_containers;
     mcontainer_create(devfd, cid);
 
-    fprintf(stderr, "Created containers\n");
 
     // Writing to objects
     for (i = 0; i < number_of_objects; i++)
     {
         mcontainer_lock(devfd, i);
-        // fprintf(stderr, "[%f] Calling mcontainer_alloc...\n", _get_uptime());
         mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
-        // fprintf(stderr, "[%f] Called mcontainer_alloc...\n", _get_uptime());
 
         // error handling
         if (!mapped_data)
