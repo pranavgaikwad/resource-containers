@@ -351,6 +351,7 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
 {
     int ret;
     char *kmalloc_ptr;
+    ObjectNode* existing_object;
     unsigned long pfn, kmalloc_area;
 
     // find out page offset of the current memory object 
@@ -362,7 +363,7 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     vma->vm_private_data = filp->private_data;
 
     // try to find a memory object with same offset    
-    ObjectNode* existing_object = (ObjectNode*)_get_memory_object(offset);
+    existing_object = (ObjectNode*)_get_memory_object(offset);
 
     // check if existing memory object already exists
     if (existing_object != NULL) {
