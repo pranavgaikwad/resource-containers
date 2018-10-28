@@ -49,6 +49,41 @@ float _get_uptime() {
     return uptime;
 }
 
+void _test_mem_container(
+        int devfd, 
+        int object_offset, 
+        int max_size_of_objects, 
+        int max_size_of_objects_with_buffer) {
+    char *mapped_data, data;
+    mcontainer_lock(devfd, i);
+    mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
+    
+    data = (char *) malloc(max_size_of_objects_with_buffer * sizeof(char));
+
+    // error handling
+    if (!mapped_data)
+    {
+        fprintf(stderr, "Failed in mcontainer_alloc()\n");
+        exit(1);
+    }
+
+    // generate a random number to write into the object.
+    a = rand() + 1;
+
+    // starts to write the data to that address.
+    gettimeofday(&current_time, NULL);
+    for (j = 0; j < max_size_of_objects_with_buffer - 10; j = strlen(data))
+    {
+        sprintf(data, "%s%d", data, a);
+    }
+
+    strncpy(mapped_data, data, max_size_of_objects-1);
+    mapped_data[max_size_of_objects-1] = '\0';
+        
+    mcontainer_unlock(devfd, i);
+    memset(data, 0, max_size_of_objects_with_buffer);
+}
+
 int main(int argc, char *argv[])
 {
     // variable initialization
@@ -107,47 +142,49 @@ int main(int argc, char *argv[])
     fp = fopen(filename, "w");
 
     // create/link this process to a container.
-    cid = getpid() % number_of_containers;
+    cid = 0; // getpid() % number_of_containers;
     mcontainer_create(devfd, cid);
 
+    // // Writing to objects
+    // for (i = 0; i < number_of_objects; i++)
+    // {
+    //     mcontainer_lock(devfd, i);
+    //     mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
 
-    // Writing to objects
-    for (i = 0; i < number_of_objects; i++)
-    {
-        mcontainer_lock(devfd, i);
-        mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
+    //     // error handling
+    //     if (!mapped_data)
+    //     {
+    //         fprintf(stderr, "Failed in mcontainer_alloc()\n");
+    //         exit(1);
+    //     }
 
-        // error handling
-        if (!mapped_data)
-        {
-            fprintf(stderr, "Failed in mcontainer_alloc()\n");
-            exit(1);
-        }
-
-        // generate a random number to write into the object.
-        a = rand() + 1;
+    //     // generate a random number to write into the object.
+    //     a = rand() + 1;
 
 
-        // starts to write the data to that address.
-        gettimeofday(&current_time, NULL);
-        for (j = 0; j < max_size_of_objects_with_buffer - 10; j = strlen(data))
-        {
-            sprintf(data, "%s%d", data, a);
-        }
+    //     // starts to write the data to that address.
+    //     gettimeofday(&current_time, NULL);
+    //     for (j = 0; j < max_size_of_objects_with_buffer - 10; j = strlen(data))
+    //     {
+    //         sprintf(data, "%s%d", data, a);
+    //     }
 
-        // fprintf(stderr, "Mapped data should look like this %s\n", data);
+    //     // fprintf(stderr, "Mapped data should look like this %s\n", data);
         
-        strncpy(mapped_data, data, max_size_of_objects-1);
-        mapped_data[max_size_of_objects-1] = '\0';
+    //     strncpy(mapped_data, data, max_size_of_objects-1);
+    //     mapped_data[max_size_of_objects-1] = '\0';
         
-        // prints out the result into the log
-        fprintf(fp, "S\t%d\t%d\t%ld\t%d\t%d\t%s\n", getpid(), cid, current_time.tv_sec * 1000000 + current_time.tv_usec, i, max_size_of_objects, mapped_data);
-        mcontainer_unlock(devfd, i);
-        memset(data, 0, max_size_of_objects_with_buffer);
-    }
+    //     // prints out the result into the log
+    //     fprintf(fp, "S\t%d\t%d\t%ld\t%d\t%d\t%s\n", getpid(), cid, current_time.tv_sec * 1000000 + current_time.tv_usec, i, max_size_of_objects, mapped_data);
+    //     mcontainer_unlock(devfd, i);
+    //     memset(data, 0, max_size_of_objects_with_buffer);
+    // }
+
+    _test_mem_container(devfd, 0, max_size_of_objects, max_size_of_objects_with_buffer);
+    _test_mem_container(devfd, 0, max_size_of_objects, max_size_of_objects_with_buffer);
 
     // try delete something
-    i = rand() % number_of_objects;
+    i = 0; // rand() % number_of_objects;
     mcontainer_lock(devfd, i);
     gettimeofday(&current_time, NULL);
     mcontainer_free(devfd, i);
