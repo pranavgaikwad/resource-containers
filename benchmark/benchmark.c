@@ -53,8 +53,11 @@ void _test_mem_container(
         int devfd, 
         int object_offset, 
         int max_size_of_objects, 
+        struct timeval* current_time,
         int max_size_of_objects_with_buffer) {
     char *mapped_data, data;
+    int i, j;
+
     mcontainer_lock(devfd, i);
     mapped_data = (char *)mcontainer_alloc(devfd, i, max_size_of_objects);
     
@@ -71,7 +74,7 @@ void _test_mem_container(
     a = rand() + 1;
 
     // starts to write the data to that address.
-    gettimeofday(&current_time, NULL);
+    gettimeofday(current_time, NULL);
     for (j = 0; j < max_size_of_objects_with_buffer - 10; j = strlen(data))
     {
         sprintf(data, "%s%d", data, a);
@@ -180,8 +183,8 @@ int main(int argc, char *argv[])
     //     memset(data, 0, max_size_of_objects_with_buffer);
     // }
 
-    _test_mem_container(devfd, 0, max_size_of_objects, max_size_of_objects_with_buffer);
-    _test_mem_container(devfd, 0, max_size_of_objects, max_size_of_objects_with_buffer);
+    _test_mem_container(devfd, 0, max_size_of_objects, &current_time, max_size_of_objects_with_buffer);
+    _test_mem_container(devfd, 0, max_size_of_objects, &current_time, max_size_of_objects_with_buffer);
 
     // try delete something
     i = 0; // rand() % number_of_objects;
