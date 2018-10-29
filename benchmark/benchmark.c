@@ -89,7 +89,7 @@ void _test_mem_container(
 
     fprintf(stderr, "Data at memory object is : %s\n", mapped_data);
         
-    fprintf(log_file, "S\t%d\t%d\t%ld\t%d\t%d\t%s\n", getpid(), cid, current_time.tv_sec * 1000000 + current_time.tv_usec, object_offset, max_size_of_objects, mapped_data);
+    fprintf(log_file, "S\t%d\t%d\t%ld\t%d\t%d\t%s\n", getpid(), cid, current_time->tv_sec * 1000000 + current_time->tv_usec, object_offset, max_size_of_objects, mapped_data);
     mcontainer_unlock(devfd, object_offset);
     memset(data, 0, max_size_of_objects_with_buffer);
 }
