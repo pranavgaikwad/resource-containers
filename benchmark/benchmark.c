@@ -158,7 +158,9 @@ int main(int argc, char *argv[])
     // Writing to objects
     for (i = 0; i < number_of_objects; i++)
     {
+        fprintf(stderr, "Before mapping : %s\n", data);
         _test_mem_container(devfd, i, max_size_of_objects, &current_time, max_size_of_objects_with_buffer, fp, cid);
+        fprintf(stderr, "After mapping : %s\n", mapped_data);
     }
 
     // try delete something
