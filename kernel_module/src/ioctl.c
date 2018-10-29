@@ -367,11 +367,15 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // try to find a memory object with same offset    
     existing_object = (ObjectNode*)_get_memory_object(offset);
 
+    ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
+    __u64 cid = 0;
+    if (container != NULL) cid = container->id;
+
     // check if memory object already exists and is allocated 
     if (existing_object != NULL) {
         // use existing memory area, if object with same offset is found
         kmalloc_area = existing_object->kmalloc_area;
-        printk("Found object with offset %llu, returning memory location %llu\n", offset, kmalloc_area);
+        printk("Found object with offset %llu, returning memory location %llu, in container %llu\n", offset, kmalloc_area, cid);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
