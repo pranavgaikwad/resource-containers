@@ -375,13 +375,13 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     if (existing_object != NULL) {
         // use existing memory area, if object with same offset is found
         kmalloc_area = existing_object->kmalloc_area;
-        printk("[Found] Container : %lu, Offset : %llu, Memory Location : %llu\n", cid, offset, kmalloc_area);
+        printk("[Found] Container : %lu, Offset : %lu, Memory Location : %lu\n", cid, offset, kmalloc_area);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
         // update list of memory object
         _add_new_memory_object(offset, kmalloc_area);
-        printk("[Not Found] Container : %lu, Offset : %llu, Memory Location : %llu\n", cid, offset, kmalloc_area);
+        printk("[Not Found] Container : %lu, Offset : %lu, Memory Location : %lu\n", cid, offset, kmalloc_area);
     }
     
     // get pfn for allocated area
