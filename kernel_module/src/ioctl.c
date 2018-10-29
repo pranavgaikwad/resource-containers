@@ -381,7 +381,7 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
         // update list of memory object
         _add_new_memory_object(offset, kmalloc_area);
-        printk("Created object with offset %llu, returning memory location %llu\n", offset, kmalloc_area);
+        printk("Created object with offset %llu, returning memory location %llu, in container %llu\n", offset, kmalloc_area, cid);
     }
     
     // get pfn for allocated area
