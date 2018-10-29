@@ -158,7 +158,7 @@ int main(int argc, char *argv[])
     // Writing to objects
     for (i = 0; i < number_of_objects; i++)
     {
-        _test_mem_container(devfd, 0, max_size_of_objects, &current_time, max_size_of_objects_with_buffer, fp, i);
+        _test_mem_container(devfd, i, max_size_of_objects, &current_time, max_size_of_objects_with_buffer, fp, cid);
     }
 
     // try delete something
