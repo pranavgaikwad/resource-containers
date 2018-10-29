@@ -154,7 +154,7 @@ int main(int argc, char *argv[])
     fp = fopen(filename, "w");
 
     // create/link this process to a container.
-    cid = 0; // getpid() % number_of_containers;
+    cid = getpid() % number_of_containers;
     mcontainer_create(devfd, cid);
 
     // Writing to objects
