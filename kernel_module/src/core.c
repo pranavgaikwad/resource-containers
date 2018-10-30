@@ -62,7 +62,6 @@ int memory_container_init(void)
     return ret;
 }
 
-
 void memory_container_exit(void)
 {
     misc_deregister(&memory_container_dev);
