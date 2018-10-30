@@ -214,6 +214,27 @@ void _add_new_task(__u64 cid, struct task_struct *task_ptr) {
 }
 
 /**
+ * Finds the container node which contains given task
+ * @param  tid Task id
+ * @return     Container Node
+ */
+void* _find_container_containing_task(pid_t tid) {
+    ContainerNode *temp_container;
+    struct list_head *c_pos, *c_q, *t_pos, *t_q;
+
+    list_for_each_safe(c_pos, c_q, &container_list_head){
+        temp_container = list_entry(c_pos, ContainerNode, c_list);
+        list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
+            TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
+            if (temp_task->id == tid) {
+                return temp_container;
+            }
+        }
+    }
+    return NULL;
+}
+
+/**
  * Associates given task with given container
  * Checks whether given task already exists in given container, 
  * if not, creates a new entry for given task in the container
@@ -237,11 +258,9 @@ void _register_task(__u64 cid, struct task_struct *task_ptr) {
 }
 
 /**
- * Finds the container node which contains given task
- * @param  tid Task id
- * @return     Container Node
+ * Removes task from given container
  */
-void* _find_container_containing_task(pid_t tid) {
+void _deregister_task_from_container(pid_t tid) {
     ContainerNode *temp_container;
     struct list_head *c_pos, *c_q, *t_pos, *t_q;
 
@@ -250,11 +269,12 @@ void* _find_container_containing_task(pid_t tid) {
         list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
             TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
             if (temp_task->id == tid) {
-                return temp_container;
+                temp_container->num_tasks = temp_container->num_tasks - 1;
+                list_del(t_pos);
+                kfree(temp_task);
             }
         }
     }
-    return NULL;
 }
 
 /**
@@ -309,7 +329,7 @@ void _remove_memory_object(__u64 offset) {
     temp_container = (ContainerNode*)_find_container_containing_task(current->pid);
 
     if (temp_container != NULL) {
-            list_for_each_safe(t_pos, t_q, &(temp_container->mem_objects).mem_objects_list) {
+        list_for_each_safe(t_pos, t_q, &(temp_container->mem_objects).mem_objects_list) {
             ObjectNode *temp_object = list_entry(t_pos, ObjectNode, mem_objects_list);
             if (temp_object->offset == offset) {
                 temp_container->num_objects = temp_container->num_objects - 1;
@@ -322,32 +342,29 @@ void _remove_memory_object(__u64 offset) {
 }
 
 /**
- * Removes task from given container 
- * if no tasks remain, deletes the container
+ * Cleans up all data structures
  */
-void _deregister_task_from_container(pid_t tid) {
+void _clean_up(void) {
     ContainerNode *temp_container;
-    struct list_head *c_pos, *c_q, *t_pos, *t_q;
+    struct list_head *c_pos, *c_q, *t_pos, *t_q, *o_pos, *o_q;
 
     list_for_each_safe(c_pos, c_q, &container_list_head){
         temp_container = list_entry(c_pos, ContainerNode, c_list);
         list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
             TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
-            if (temp_task->id == tid) {
-                temp_container->num_tasks = temp_container->num_tasks - 1;
-                list_del(t_pos);
-                kfree(temp_task);
-            }
+            list_del(t_pos);
+            kfree(temp_task);
         }
-        
-        // if there are no more tasks in the container, delete the container
-        if (temp_container->num_tasks == 0) {
-            list_del(c_pos);
-            kfree(temp_container);
+        list_for_each_safe(o_pos, o_q, &(temp_container->mem_objects).mem_objects_list) {
+            ObjectNode *temp_object = list_entry(o_pos, ObjectNode, mem_objects_list);
+            list_del(o_pos);
+            kfree(temp_object);
         }
+        printk("Cleaned up container : %llu", temp_container->id);
+        list_del(c_pos);
+        kfree(temp_container);
     }
 }
-
 
 int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
 {
@@ -375,13 +392,11 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     if (existing_object != NULL) {
         // use existing memory area, if object with same offset is found
         kmalloc_area = existing_object->kmalloc_area;
-        printk("[Found] Container : %lu, Offset : %lu, Memory Location : %lu\n", cid, offset, kmalloc_area);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
         // update list of memory object
         _add_new_memory_object(offset, kmalloc_area);
-        printk("[Not Found] Container : %lu, Offset : %lu, Memory Location : %lu\n", cid, offset, kmalloc_area);
     }
     
     // get pfn for allocated area
