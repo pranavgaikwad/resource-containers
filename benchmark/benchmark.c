@@ -75,7 +75,7 @@ void _test_mem_container(
     // generate a random number to write into the object.
     a = rand() + 1;
 
-    fprintf(stderr, "[Before] Container : %d, Offset : %d, Data : %s\n", cid, object_offset, mapped_data);
+    // fprintf(stderr, "[Before] Container : %d, Offset : %d, Data : %s\n", cid, object_offset, mapped_data);
 
     // starts to write the data to that address.
     gettimeofday(current_time, NULL);
@@ -87,9 +87,9 @@ void _test_mem_container(
     strncpy(mapped_data, data, max_size_of_objects-1);
     mapped_data[max_size_of_objects-1] = '\0';
 
-    fprintf(stderr, "[After] Container : %d, Offset : %d, Data : %s\n", cid, object_offset, mapped_data);
+    // fprintf(stderr, "[After] Container : %d, Offset : %d, Data : %s\n", cid, object_offset, mapped_data);
         
-    fprintf(stderr, "___________________________________________________________________________________________\n");
+    // fprintf(stderr, "___________________________________________________________________________________________\n");
 
     fprintf(log_file, "S\t%d\t%d\t%ld\t%d\t%d\t%s\n", getpid(), cid, current_time->tv_sec * 1000000 + current_time->tv_usec, object_offset, max_size_of_objects, mapped_data);
     mcontainer_unlock(devfd, object_offset);

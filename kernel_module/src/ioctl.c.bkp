@@ -61,24 +61,26 @@ typedef struct mem_object_node {
 } ObjectNode;
 
 // defines a container
-// contains list of tasks and list of allocated memory objects
+// contains list of tasks
 typedef struct container_node {
     __u64 id;
     int num_tasks;
     int num_objects;
     TaskNode t_list;
-    ObjectNode mem_objects;
-    struct mutex mem_lock;   // local lock for operations on mem objects
     struct mutex task_lock;  // local lock for operations on tasks' list
     struct list_head c_list;
 } ContainerNode;
 
 // a global lock on list of containers
 static DEFINE_MUTEX(container_lock);
+// a global lock on list of memory objects
+static DEFINE_MUTEX(memory_objects_lock);
 
-// pointer to head of container list
-// similar to initializing a linked list
+// initialize the list of containers 
 struct list_head container_list_head = LIST_HEAD_INIT(container_list_head);
+
+// initialize the list of memory objects
+struct list_head memory_objects_list_head = LIST_HEAD_INIT(memory_objects_list_head);
 
 /**
  * Returns 'container id' in kernel mode from user mode struct
@@ -148,9 +150,6 @@ void _add_new_container(__u64 cid) {
     // initialize task list and lock 
     mutex_init(&new_container->task_lock);
     INIT_LIST_HEAD(&((new_container->t_list).task_list));
-    // initialize memory objects' list and lock
-    mutex_init(&new_container->mem_lock);
-    INIT_LIST_HEAD(&((new_container->mem_objects).mem_objects_list));
     // add new container to the container list
     list_add(&(new_container->c_list), &container_list_head);
 }
@@ -214,27 +213,6 @@ void _add_new_task(__u64 cid, struct task_struct *task_ptr) {
 }
 
 /**
- * Finds the container node which contains given task
- * @param  tid Task id
- * @return     Container Node
- */
-void* _find_container_containing_task(pid_t tid) {
-    ContainerNode *temp_container;
-    struct list_head *c_pos, *c_q, *t_pos, *t_q;
-
-    list_for_each_safe(c_pos, c_q, &container_list_head){
-        temp_container = list_entry(c_pos, ContainerNode, c_list);
-        list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
-            TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
-            if (temp_task->id == tid) {
-                return temp_container;
-            }
-        }
-    }
-    return NULL;
-}
-
-/**
  * Associates given task with given container
  * Checks whether given task already exists in given container, 
  * if not, creates a new entry for given task in the container
@@ -258,7 +236,80 @@ void _register_task(__u64 cid, struct task_struct *task_ptr) {
 }
 
 /**
- * Removes task from given container
+ * Finds the container node which contains given task
+ * @param  tid Task id
+ * @return     Container Node
+ */
+void* _find_container_containing_task(pid_t tid) {
+    ContainerNode *temp_container;
+    struct list_head *c_pos, *c_q, *t_pos, *t_q;
+
+    list_for_each_safe(c_pos, c_q, &container_list_head){
+        temp_container = list_entry(c_pos, ContainerNode, c_list);
+        list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
+            TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
+            if (temp_task->id == tid) {
+                return temp_container;
+            }
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Checks whether memory object is already allocated and return the object if present already
+ * @param  cid Container Id
+ * @return     mem_object if exists, -1 if does not exist
+ */
+void* _get_memory_object(__u64 offset) {
+    struct list_head *o_pos, *o_q;
+
+    list_for_each_safe(o_pos, o_q, &memory_objects_list_head) {
+        ObjectNode *temp_object = list_entry(o_pos, ObjectNode, mem_objects_list);
+        if (temp_object->offset == offset) {
+            return temp_object;
+        }
+    }
+    return NULL;
+}
+
+/**
+ * Adds new object in object list of container
+ * @param  cid    Container Id
+ * @param  offset Offset of memory object
+ * @return       
+ */
+void _add_new_memory_object(__u64 offset, unsigned long kmalloc_area) {
+    ObjectNode *new_object_node;
+    
+    new_object_node = (ObjectNode*)kmalloc(sizeof(ObjectNode), GFP_KERNEL);
+    new_object_node->offset = offset;
+    new_object_node->kmalloc_area = kmalloc_area;
+    list_add_tail(&(new_object_node->mem_objects_list), &memory_objects_list_head);
+}
+
+/**
+ * Removes object with given offset from list of objects of associated container
+ * @param  cid    Container Id
+ * @param  offset Offset of memory object
+ * @return       
+ */
+void _remove_memory_object(__u64 offset) {
+    struct list_head *t_pos, *t_q;
+
+    list_for_each_safe(t_pos, t_q, &memory_objects_list_head) {
+        ObjectNode *temp_object = list_entry(t_pos, ObjectNode, mem_objects_list);
+        if (temp_object->offset == offset) {
+            list_del(t_pos);
+            kfree((void*)temp_object->kmalloc_area);    // free the memory area which was allocated
+            kfree(temp_object);
+        }
+    }
+}
+
+/**
+ * Removes task from given container 
+ * if no tasks remain, deletes the container
  */
 void _deregister_task_from_container(pid_t tid) {
     ContainerNode *temp_container;
@@ -274,96 +325,15 @@ void _deregister_task_from_container(pid_t tid) {
                 kfree(temp_task);
             }
         }
-    }
-}
-
-/**
- * Checks whether memory object is already allocated and return the object if present already
- * @param  cid Container Id
- * @return     mem_object if exists, -1 if does not exist
- */
-void* _get_memory_object(__u64 offset) {
-    struct list_head *o_pos, *o_q;
-    ContainerNode *temp_container = (ContainerNode*)_find_container_containing_task(current->pid);
-
-    if (temp_container != NULL) {
-        list_for_each_safe(o_pos, o_q, &(temp_container->mem_objects).mem_objects_list) {
-            ObjectNode *temp_object = list_entry(o_pos, ObjectNode, mem_objects_list);
-            if (temp_object->offset == offset) {
-                return temp_object;
-            }
-        }
-    }
-    return NULL;
-}
-
-/**
- * Adds new object in object list of container
- * @param  cid    Container Id
- * @param  offset Offset of memory object
- * @return       
- */
-void _add_new_memory_object(__u64 offset, unsigned long kmalloc_area) {
-    ObjectNode *new_object_node;
-    ContainerNode *temp_container = (ContainerNode*)_find_container_containing_task(current->pid);
-    
-    if (temp_container != NULL) {
-        new_object_node = (ObjectNode*)kmalloc(sizeof(ObjectNode), GFP_KERNEL);
-        new_object_node->offset = offset;
-        new_object_node->kmalloc_area = kmalloc_area;
-        list_add_tail(&(new_object_node->mem_objects_list), &((temp_container->mem_objects).mem_objects_list));
-        temp_container->num_objects = temp_container->num_objects + 1;    
-    }
-}
-
-/**
- * Removes object with given offset from list of objects of associated container
- * @param  cid    Container Id
- * @param  offset Offset of memory object
- * @return       
- */
-void _remove_memory_object(__u64 offset) {
-    ContainerNode *temp_container;
-    struct list_head *t_pos, *t_q;
-
-    temp_container = (ContainerNode*)_find_container_containing_task(current->pid);
-
-    if (temp_container != NULL) {
-        list_for_each_safe(t_pos, t_q, &(temp_container->mem_objects).mem_objects_list) {
-            ObjectNode *temp_object = list_entry(t_pos, ObjectNode, mem_objects_list);
-            if (temp_object->offset == offset) {
-                temp_container->num_objects = temp_container->num_objects - 1;
-                list_del(t_pos);
-                kfree((void*)temp_object->kmalloc_area);    // free the memory area which was allocated
-                kfree(temp_object);
-            }
+        
+        // if there are no more tasks in the container, delete the container
+        if (temp_container->num_tasks == 0) {
+            list_del(c_pos);
+            kfree(temp_container);
         }
     }
 }
 
-/**
- * Cleans up all data structures
- */
-void _clean_up(void) {
-    ContainerNode *temp_container;
-    struct list_head *c_pos, *c_q, *t_pos, *t_q, *o_pos, *o_q;
-
-    list_for_each_safe(c_pos, c_q, &container_list_head){
-        temp_container = list_entry(c_pos, ContainerNode, c_list);
-        list_for_each_safe(t_pos, t_q, &(temp_container->t_list).task_list) {
-            TaskNode *temp_task = list_entry(t_pos, TaskNode, task_list);
-            list_del(t_pos);
-            kfree(temp_task);
-        }
-        list_for_each_safe(o_pos, o_q, &(temp_container->mem_objects).mem_objects_list) {
-            ObjectNode *temp_object = list_entry(o_pos, ObjectNode, mem_objects_list);
-            list_del(o_pos);
-            kfree(temp_object);
-        }
-        list_del(c_pos);
-        kfree(temp_container);
-    }
-}
 
 int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
 {
@@ -383,19 +353,17 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
     // try to find a memory object with same offset    
     existing_object = (ObjectNode*)_get_memory_object(offset);
 
-    ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
-    __u64 cid = 0;
-    if (container != NULL) cid = container->id;
-
     // check if memory object already exists and is allocated 
     if (existing_object != NULL) {
         // use existing memory area, if object with same offset is found
         kmalloc_area = existing_object->kmalloc_area;
+        printk("[Found] Offset : %lu, Memory Location : %lu\n", offset, kmalloc_area);
     } else {
         kmalloc_ptr = (char*)kmalloc(total_memory, GFP_KERNEL);
         kmalloc_area = ((unsigned long)kmalloc_ptr) & PAGE_MASK;
         // update list of memory object
         _add_new_memory_object(offset, kmalloc_area);
+        printk("[Not Found] Offset : %lu, Memory Location : %lu\n", offset, kmalloc_area);
     }
     
     // get pfn for allocated area
@@ -410,19 +378,13 @@ int memory_container_mmap(struct file *filp, struct vm_area_struct *vma)
 
 int memory_container_lock(struct memory_container_cmd __user *user_cmd)
 {
-    ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
-    if (container != NULL) {
-        mutex_lock(&container->mem_lock);
-    }
+    mutex_lock(&memory_objects_lock);
     return 0;
 }
 
 int memory_container_unlock(struct memory_container_cmd __user *user_cmd)
 {
-    ContainerNode* container = (ContainerNode*)_find_container_containing_task(current->pid);
-    if (container != NULL) {
-        mutex_unlock(&container->mem_lock);
-    }
+    mutex_unlock(&memory_objects_lock);
     return 0;
 }
 
